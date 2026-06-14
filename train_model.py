@@ -26,7 +26,12 @@ warnings.filterwarnings("ignore")
 # ──────────────────────────────────────────────────────────────
 # 1. Load & Prepare Data
 # ──────────────────────────────────────────────────────────────
-DATA_PATH = os.path.join(os.path.dirname(__file__), "ev_population.csv")
+try:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    base_dir = os.path.abspath("")  # Fallback for Jupyter Notebooks
+
+DATA_PATH = os.path.join(base_dir, "ev_population.csv")
 LOOKBACK = 12  # months
 
 print("=" * 60)
@@ -130,11 +135,14 @@ print(f"   {'[OK] MAPE < 10% -- Target Met!' if mape < 10 else '[WARN] MAPE >= 1
 # ──────────────────────────────────────────────────────────────
 # 7. Save Artifacts
 # ──────────────────────────────────────────────────────────────
-base_dir = os.path.dirname(__file__)
+try:
+    save_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    save_dir = os.path.abspath("")
 
-model_path = os.path.join(base_dir, "ev_model.h5")
-scaler_path = os.path.join(base_dir, "scaler.pkl")
-metrics_path = os.path.join(base_dir, "metrics.json")
+model_path = os.path.join(save_dir, "ev_model.h5")
+scaler_path = os.path.join(save_dir, "scaler.pkl")
+metrics_path = os.path.join(save_dir, "metrics.json")
 
 model.save(model_path)
 joblib.dump(scaler, scaler_path)
