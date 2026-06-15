@@ -38,7 +38,20 @@ print("=" * 60)
 print("  EV Registration Forecasting — Model Training Pipeline")
 print("=" * 60)
 
-df = pd.read_csv(DATA_PATH, parse_dates=["Date"])
+try:
+    print("[DATA] Attempting to fetch live data from data.wa.gov API...")
+    url = "https://data.wa.gov/api/views/d886-d5q2/rows.csv?accessType=DOWNLOAD"
+    df_raw = pd.read_csv(url)
+    df = df_raw[['Date', 'Electric Vehicle (EV) Total']].copy()
+    
+    # Save a local backup
+    df.to_csv(DATA_PATH, index=False)
+    print("   [OK] Live data fetched and backed up locally.")
+except Exception as e:
+    print(f"   [WARN] API fetch failed: {e}. Falling back to local data.")
+    df = pd.read_csv(DATA_PATH)
+
+df['Date'] = pd.to_datetime(df['Date'])
 df = df.sort_values("Date").reset_index(drop=True)
 values = df["Electric Vehicle (EV) Total"].values.astype(float).reshape(-1, 1)
 
