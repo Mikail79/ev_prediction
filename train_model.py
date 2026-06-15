@@ -122,6 +122,8 @@ actuals = scaler.inverse_transform(y_test.reshape(-1, 1))
 
 # MAPE
 mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
+# MAE
+mae = np.mean(np.abs(actuals - predictions))
 # RMSE
 rmse = np.sqrt(np.mean((actuals - predictions) ** 2))
 
@@ -147,7 +149,7 @@ metrics_path = os.path.join(save_dir, "metrics.json")
 model.save(model_path)
 joblib.dump(scaler, scaler_path)
 
-metrics = {"mape": round(mape, 2), "rmse": round(rmse, 2)}
+metrics = {"mape": round(mape, 2), "mae": round(mae, 2), "rmse": round(rmse, 2)}
 with open(metrics_path, "w") as f:
     json.dump(metrics, f, indent=2)
 

@@ -196,9 +196,9 @@ def load_metrics():
         with open('metrics.json', 'r') as f:
             return json.load(f)
     except:
-        return {"mape": 0.0, "rmse": 0.0}
+        return {"mape": 0.0, "mae": 0.0, "rmse": 0.0}
 
-def render_hero(mape, rmse, latest_count, data_points):
+def render_hero(mape, mae, rmse, latest_count):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -292,7 +292,7 @@ def render_hero(mape, rmse, latest_count, data_points):
         <div class="grid">
             <div class="card">
                 <div class="accent-corner"></div>
-                <p class="card-label">Model Accuracy</p>
+                <p class="card-label">MAPE (Error)</p>
                 <div class="flex-row">
                     <span class="metric-val text-blue" id="mape-val">0</span>
                     <span class="metric-val text-blue" style="font-size: 1.2rem;">%</span>
@@ -300,13 +300,13 @@ def render_hero(mape, rmse, latest_count, data_points):
             </div>
             
             <div class="card">
-                <p class="card-label">Root Mean Sq Err</p>
-                <div class="metric-val text-orange" id="rmse-val">0</div>
+                <p class="card-label">Mean Abs Err (MAE)</p>
+                <div class="metric-val text-orange" id="mae-val">0</div>
             </div>
             
             <div class="card">
-                <p class="card-label">Dataset Records</p>
-                <div class="metric-val" id="records-val">0</div>
+                <p class="card-label">Root Mean Sq (RMSE)</p>
+                <div class="metric-val text-orange" id="rmse-val">0</div>
             </div>
             
             <div class="card card-dark">
@@ -356,8 +356,8 @@ def render_hero(mape, rmse, latest_count, data_points):
             // Small delay to ensure browser render thread is free
             setTimeout(() => {{
                 countUp('#mape-val', {mape}, true);
+                countUp('#mae-val', {mae}, false);
                 countUp('#rmse-val', {rmse}, false);
-                countUp('#records-val', {data_points}, false);
                 countUp('#latest-val', {latest_count}, false);
             }}, 100);
         </script>
@@ -378,7 +378,7 @@ latest_date = df['Date'].max()
 latest_count = int(df['Electric Vehicle (EV) Total'].iloc[-1])
 
 # Render Custom Hero Section via iframe (Tailwind + AnimeJS)
-render_hero(metrics['mape'], metrics['rmse'], latest_count, len(df))
+render_hero(metrics['mape'], metrics['mae'], metrics['rmse'], latest_count)
 
 # ----------------- SIDEBAR -----------------
 with st.sidebar:
