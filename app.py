@@ -177,9 +177,17 @@ st.markdown("""
 # ==========================================
 # 2. HELPER FUNCTIONS
 # ==========================================
-@st.cache_data
+@st.cache_data(ttl=86400) # Cache for 24 hours
 def load_historical_data():
-    df = pd.read_csv('ev_population.csv')
+    try:
+        # Fetch live from official API
+        url = "https://data.wa.gov/api/views/d886-d5q2/rows.csv?accessType=DOWNLOAD"
+        df = pd.read_csv(url)
+        df = df[['Date', 'Electric Vehicle (EV) Total']].copy()
+    except Exception:
+        # Fallback to local file if API is down
+        df = pd.read_csv('ev_population.csv')
+        
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values('Date').reset_index(drop=True)
     return df
