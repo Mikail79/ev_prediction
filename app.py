@@ -512,46 +512,6 @@ def create_brutalist_chart(df_hist, df_pred=None):
 # Initial chart (History only)
 if not run_btn:
     st.plotly_chart(create_brutalist_chart(df), use_container_width=True)
-    
-    # Show Charging Station Infrastructure Chart
-    if df_charging is not None and len(df_charging) > 0:
-        st.markdown("<h3>Charging Infrastructure Growth</h3>", unsafe_allow_html=True)
-        fig_infra = go.Figure()
-        fig_infra.add_trace(go.Scatter(
-            x=df_charging['Date'], y=df_charging['Stations_Cumulative'],
-            mode='lines', name='Stations',
-            line=dict(color='#0033cc', width=3),
-            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} Stations</b><extra></extra>'
-        ))
-        fig_infra.add_trace(go.Scatter(
-            x=df_charging['Date'], y=df_charging['Ports_L2_Cumulative'],
-            mode='lines', name='L2 Ports',
-            line=dict(color='#ff3300', width=2, dash='dot'),
-            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} L2 Ports</b><extra></extra>'
-        ))
-        fig_infra.add_trace(go.Scatter(
-            x=df_charging['Date'], y=df_charging['Ports_DCFC_Cumulative'],
-            mode='lines', name='DC Fast Ports',
-            line=dict(color='#228B22', width=2, dash='dash'),
-            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} DCFC Ports</b><extra></extra>'
-        ))
-        fig_infra.update_layout(
-            paper_bgcolor='#f4f4f0', plot_bgcolor='#f4f4f0',
-            font=dict(color='#0f0f0f', family='JetBrains Mono'),
-            hovermode='x unified', margin=dict(l=0, r=0, t=20, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-                font=dict(family='Space Grotesk', size=12, color='#0f0f0f')),
-            xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
-                showline=True, linewidth=2, linecolor='#0f0f0f',
-                tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
-            yaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
-                showline=True, linewidth=2, linecolor='#0f0f0f',
-                tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
-            hoverlabel=dict(bgcolor="#0f0f0f", font_size=14, font_family="JetBrains Mono",
-                font_color="#f4f4f0", bordercolor="#0033cc")
-        )
-        st.plotly_chart(fig_infra, use_container_width=True)
-    
     st.markdown("<p style='text-align:right; font-family:\"JetBrains Mono\"; font-size:0.8rem;'>Awaiting Forecast Execution...</p>", unsafe_allow_html=True)
 
 # Forecast Execution
@@ -705,3 +665,44 @@ if run_btn:
                 <div style="font-size:0.8rem; margin-top:5px; color:#e5e5e0;">vehicles/month</div>
             </div>
             """, unsafe_allow_html=True)
+
+# ----------------- ALWAYS RENDERED CHARTS -----------------
+# Show Charging Station Infrastructure Chart
+if df_charging is not None and len(df_charging) > 0:
+    st.markdown("<hr style='border:1px solid #e5e5e0; margin: 40px 0;'>", unsafe_allow_html=True)
+    st.markdown("<h3>Charging Infrastructure Growth</h3>", unsafe_allow_html=True)
+    fig_infra = go.Figure()
+    fig_infra.add_trace(go.Scatter(
+        x=df_charging['Date'], y=df_charging['Stations_Cumulative'],
+        mode='lines', name='Stations',
+        line=dict(color='#0033cc', width=3),
+        hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} Stations</b><extra></extra>'
+    ))
+    fig_infra.add_trace(go.Scatter(
+        x=df_charging['Date'], y=df_charging['Ports_L2_Cumulative'],
+        mode='lines', name='L2 Ports',
+        line=dict(color='#ff3300', width=2, dash='dot'),
+        hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} L2 Ports</b><extra></extra>'
+    ))
+    fig_infra.add_trace(go.Scatter(
+        x=df_charging['Date'], y=df_charging['Ports_DCFC_Cumulative'],
+        mode='lines', name='DC Fast Ports',
+        line=dict(color='#228B22', width=2, dash='dash'),
+        hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} DCFC Ports</b><extra></extra>'
+    ))
+    fig_infra.update_layout(
+        paper_bgcolor='#f4f4f0', plot_bgcolor='#f4f4f0',
+        font=dict(color='#0f0f0f', family='JetBrains Mono'),
+        hovermode='x unified', margin=dict(l=0, r=0, t=20, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            font=dict(family='Space Grotesk', size=12, color='#0f0f0f')),
+        xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
+            showline=True, linewidth=2, linecolor='#0f0f0f',
+            tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
+        yaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
+            showline=True, linewidth=2, linecolor='#0f0f0f',
+            tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
+        hoverlabel=dict(bgcolor="#0f0f0f", font_size=14, font_family="JetBrains Mono",
+            font_color="#f4f4f0", bordercolor="#0033cc")
+    )
+    st.plotly_chart(fig_infra, use_container_width=True)
