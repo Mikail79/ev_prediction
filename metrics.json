@@ -1,5 +1,9 @@
 {
-  "mape": 1.59,
-  "mae": 4075.22,
-  "rmse": 4376.35
+  "mape": 2.7,
+  "mae": 7486.27,
+  "rmse": 11077.94,
+  "latest_stations": 3261,
+  "latest_ports": 9236,
+  "num_features": 4,
+  "model_type": "Multivariate LSTM"
 }

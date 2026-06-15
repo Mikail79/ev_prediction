@@ -192,6 +192,16 @@ def load_historical_data():
     df = df.sort_values('Date').reset_index(drop=True)
     return df
 
+@st.cache_data(ttl=86400)
+def load_charging_data():
+    try:
+        df = pd.read_csv('charging_stations.csv')
+    except Exception:
+        return None
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date').reset_index(drop=True)
+    return df
+
 @st.cache_resource
 def load_model_and_scaler():
     model = load_model('ev_model.h5', compile=False)
@@ -204,9 +214,9 @@ def load_metrics():
         with open('metrics.json', 'r') as f:
             return json.load(f)
     except:
-        return {"mape": 0.0, "mae": 0.0, "rmse": 0.0}
+        return {"mape": 0.0, "mae": 0.0, "rmse": 0.0, "latest_stations": 0, "latest_ports": 0}
 
-def render_hero(mape, mae, rmse, latest_count):
+def render_hero(mape, mae, rmse, latest_count, latest_stations=0):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -313,8 +323,8 @@ def render_hero(mape, mae, rmse, latest_count):
             </div>
             
             <div class="card">
-                <p class="card-label">Root Mean Sq (RMSE)</p>
-                <div class="metric-val text-orange" id="rmse-val">0</div>
+                <p class="card-label">Charging Stations</p>
+                <div class="metric-val" id="stations-val">0</div>
             </div>
             
             <div class="card card-dark">
@@ -365,7 +375,7 @@ def render_hero(mape, mae, rmse, latest_count):
             setTimeout(() => {{
                 countUp('#mape-val', {mape}, true);
                 countUp('#mae-val', {mae}, false);
-                countUp('#rmse-val', {rmse}, false);
+                countUp('#stations-val', {latest_stations}, false);
                 countUp('#latest-val', {latest_count}, false);
             }}, 100);
         </script>
@@ -379,14 +389,16 @@ def render_hero(mape, mae, rmse, latest_count):
 # 3. MAIN APP LOGIC
 # ==========================================
 df = load_historical_data()
+df_charging = load_charging_data()
 model, scaler = load_model_and_scaler()
 metrics = load_metrics()
 
 latest_date = df['Date'].max()
 latest_count = int(df['Electric Vehicle (EV) Total'].iloc[-1])
+latest_stations = metrics.get('latest_stations', 0)
 
 # Render Custom Hero Section via iframe (Tailwind + AnimeJS)
-render_hero(metrics['mape'], metrics['mae'], metrics['rmse'], latest_count)
+render_hero(metrics['mape'], metrics['mae'], metrics['rmse'], latest_count, latest_stations)
 
 # ----------------- SIDEBAR -----------------
 with st.sidebar:
@@ -403,10 +415,12 @@ with st.sidebar:
     st.markdown("""
     <ul style='font-family: "JetBrains Mono", monospace; font-size: 0.8rem; padding-left: 15px;'>
         <li>Arch: 2-Layer LSTM</li>
+        <li>Type: Multivariate (4 Features)</li>
         <li>Lookback: 12 months</li>
         <li>Optimizer: Adam</li>
         <li>Loss: MSE</li>
     </ul>
+    <p style='font-family: "JetBrains Mono", monospace; font-size: 0.75rem; margin-top: 10px; color: #555;'>Features: EV Total, Charging Stations, L2 Ports, DCFC Ports</p>
     """, unsafe_allow_html=True)
 
 # ----------------- PLOT STYLING -----------------
@@ -498,28 +512,115 @@ def create_brutalist_chart(df_hist, df_pred=None):
 # Initial chart (History only)
 if not run_btn:
     st.plotly_chart(create_brutalist_chart(df), use_container_width=True)
+    
+    # Show Charging Station Infrastructure Chart
+    if df_charging is not None and len(df_charging) > 0:
+        st.markdown("<h3>Charging Infrastructure Growth</h3>", unsafe_allow_html=True)
+        fig_infra = go.Figure()
+        fig_infra.add_trace(go.Scatter(
+            x=df_charging['Date'], y=df_charging['Stations_Cumulative'],
+            mode='lines', name='Stations',
+            line=dict(color='#0033cc', width=3),
+            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} Stations</b><extra></extra>'
+        ))
+        fig_infra.add_trace(go.Scatter(
+            x=df_charging['Date'], y=df_charging['Ports_L2_Cumulative'],
+            mode='lines', name='L2 Ports',
+            line=dict(color='#ff3300', width=2, dash='dot'),
+            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} L2 Ports</b><extra></extra>'
+        ))
+        fig_infra.add_trace(go.Scatter(
+            x=df_charging['Date'], y=df_charging['Ports_DCFC_Cumulative'],
+            mode='lines', name='DC Fast Ports',
+            line=dict(color='#228B22', width=2, dash='dash'),
+            hovertemplate='%{x|%b %Y}<br><b>%{y:,.0f} DCFC Ports</b><extra></extra>'
+        ))
+        fig_infra.update_layout(
+            paper_bgcolor='#f4f4f0', plot_bgcolor='#f4f4f0',
+            font=dict(color='#0f0f0f', family='JetBrains Mono'),
+            hovermode='x unified', margin=dict(l=0, r=0, t=20, b=0),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                font=dict(family='Space Grotesk', size=12, color='#0f0f0f')),
+            xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
+                showline=True, linewidth=2, linecolor='#0f0f0f',
+                tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
+            yaxis=dict(showgrid=True, gridwidth=1, gridcolor='#e5e5e0',
+                showline=True, linewidth=2, linecolor='#0f0f0f',
+                tickfont=dict(family='JetBrains Mono', color='#0f0f0f')),
+            hoverlabel=dict(bgcolor="#0f0f0f", font_size=14, font_family="JetBrains Mono",
+                font_color="#f4f4f0", bordercolor="#0033cc")
+        )
+        st.plotly_chart(fig_infra, use_container_width=True)
+    
     st.markdown("<p style='text-align:right; font-family:\"JetBrains Mono\"; font-size:0.8rem;'>Awaiting Forecast Execution...</p>", unsafe_allow_html=True)
 
 # Forecast Execution
 if run_btn:
-    with st.spinner("Compiling Neural Network Forecast..."):
-        # Prepare input data (last 12 months)
+    with st.spinner("Compiling Multivariate Neural Network Forecast..."):
+        # Prepare input data (last 12 months) — Multivariate (4 features)
         lookback = 12
-        last_data = df['Electric Vehicle (EV) Total'].values[-lookback:]
-        last_data_scaled = scaler.transform(last_data.reshape(-1, 1))
+        num_features = scaler.n_features_in_  # Should be 4 for multivariate
         
-        current_sequence = last_data_scaled.reshape(1, lookback, 1)
+        # Merge EV + charging data for input sequence
+        if df_charging is not None and num_features == 4:
+            df_ev_tmp = df.copy()
+            df_ev_tmp['merge_key'] = df_ev_tmp['Date'].dt.to_period('M')
+            df_ch_tmp = df_charging.copy()
+            df_ch_tmp['merge_key'] = df_ch_tmp['Date'].dt.to_period('M')
+            df_merged = pd.merge(
+                df_ev_tmp[['merge_key', 'Electric Vehicle (EV) Total']],
+                df_ch_tmp[['merge_key', 'Stations_Cumulative', 'Ports_L2_Cumulative', 'Ports_DCFC_Cumulative']],
+                on='merge_key', how='inner'
+            ).sort_values('merge_key')
+            
+            last_data = df_merged[['Electric Vehicle (EV) Total', 'Stations_Cumulative', 'Ports_L2_Cumulative', 'Ports_DCFC_Cumulative']].values[-lookback:]
+            last_data_scaled = scaler.transform(last_data)
+            
+            # Calculate monthly growth rates for charging features (for projection)
+            growth_window = min(6, len(df_merged) - 1)
+            stations_growth = (df_merged['Stations_Cumulative'].values[-1] - df_merged['Stations_Cumulative'].values[-growth_window]) / growth_window
+            l2_growth = (df_merged['Ports_L2_Cumulative'].values[-1] - df_merged['Ports_L2_Cumulative'].values[-growth_window]) / growth_window
+            dcfc_growth = (df_merged['Ports_DCFC_Cumulative'].values[-1] - df_merged['Ports_DCFC_Cumulative'].values[-growth_window]) / growth_window
+        else:
+            # Fallback to univariate if charging data not available
+            last_data = df['Electric Vehicle (EV) Total'].values[-lookback:].reshape(-1, 1)
+            last_data_scaled = scaler.transform(last_data)
+            stations_growth = l2_growth = dcfc_growth = 0
+        
+        current_sequence = last_data_scaled.reshape(1, lookback, num_features)
         predictions_scaled = []
         
+        # Track last raw values for projecting charging features
+        if num_features == 4:
+            last_raw = last_data[-1].copy()  # [ev_total, stations, l2, dcfc]
+        
         # Iterative prediction
-        for _ in range(months_to_predict):
+        for step in range(months_to_predict):
             pred = model.predict(current_sequence, verbose=0)
             predictions_scaled.append(pred[0, 0])
-            # Update sequence: remove oldest, add new prediction
-            current_sequence = np.append(current_sequence[:, 1:, :], [[[pred[0, 0]]]], axis=1)
             
-        # Inverse transform
-        predictions = scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+            if num_features == 4:
+                # Project charging features forward with linear trend
+                proj_stations = last_raw[1] + stations_growth * (step + 1)
+                proj_l2 = last_raw[2] + l2_growth * (step + 1)
+                proj_dcfc = last_raw[3] + dcfc_growth * (step + 1)
+                
+                # Build next input row (raw values for scaling)
+                # Use a dummy for EV total; we'll put the predicted scaled value directly
+                next_raw = np.array([[0, proj_stations, proj_l2, proj_dcfc]])
+                next_scaled = scaler.transform(next_raw)
+                next_scaled[0, 0] = pred[0, 0]  # Use the actual predicted scaled value for EV
+                
+                new_step = next_scaled.reshape(1, 1, num_features)
+            else:
+                new_step = np.array([[[pred[0, 0]]]])
+            
+            current_sequence = np.append(current_sequence[:, 1:, :], new_step, axis=1)
+        
+        # Inverse transform predictions
+        dummy = np.zeros((len(predictions_scaled), num_features))
+        dummy[:, 0] = predictions_scaled
+        predictions = scaler.inverse_transform(dummy)[:, 0]
         
         # Create Dates
         future_dates = [latest_date + pd.DateOffset(months=i) for i in range(1, months_to_predict + 1)]
